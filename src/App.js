@@ -2,9 +2,7 @@ import React, { useState, useEffect } from "react";
 import "./App.css";
 import dayjs from "dayjs";
 
-
-     const globalHolidays = [
-  // 🌍 International & Multinational
+const globalHolidays = [
   { title: "New Year's Day", date: "2025-01-01" },
   { title: "Valentine's Day", date: "2025-02-14" },
   { title: "International Mother Language Day", date: "2025-02-21" },
@@ -29,8 +27,6 @@ import dayjs from "dayjs";
   { title: "World AIDS Day", date: "2025-12-01" },
   { title: "Human Rights Day", date: "2025-12-10" },
   { title: "Christmas Day", date: "2025-12-25" },
-
-  // 🎉 Major Indian Festivals
   { title: "Pongal", date: "2025-01-14" },
   { title: "Makar Sankranti", date: "2025-01-14" },
   { title: "Republic Day (India)", date: "2025-01-26" },
@@ -49,8 +45,6 @@ import dayjs from "dayjs";
   { title: "Eid al-Adha (Bakrid)", date: "2025-06-06" },
   { title: "Guru Nanak Jayanti", date: "2025-11-05" }
 ];
-
-
 
 function App() {
   const [current, setCurrent] = useState(dayjs());
@@ -111,16 +105,6 @@ function App() {
     }
   };
 
-  const showInlineEdit = (i) => {
-    const e = events[i];
-    setTitle(e.title);
-    setDate(e.date);
-    setTime(e.time);
-    setCategory(e.category);
-    setEditIndex(i);
-    setPage("calendar");
-  };
-
   const downloadCSV = () => {
     let csv = "Title,Date,Time,Category\n";
     events.forEach(e => {
@@ -165,6 +149,22 @@ function App() {
     return days;
   };
 
+  // Helper function to get upcoming events
+  const getUpcomingEvents = () => {
+    const now = dayjs();
+    return events
+      .filter(e => {
+        const eventDateTime = dayjs(`${e.date}T${e.time}`);
+        return eventDateTime.isAfter(now);
+      })
+      .sort((a, b) => {
+        const dateA = dayjs(`${a.date}T${a.time}`);
+        const dateB = dayjs(`${b.date}T${b.time}`);
+        return dateA.diff(dateB);
+      })
+      .slice(0, 3);
+  };
+
   return (
     <div className="App">
       <aside className="sidebar">
@@ -178,13 +178,10 @@ function App() {
         <div className="upcoming">
           <h2>Upcoming Events</h2>
           <ul>
-            {events
-              .filter(e => dayjs(`${e.date}T${e.time}`).isAfter(dayjs()))
-              .sort((a,b) => dayjs(`${a.date}T${a.time}`).diff(dayjs(`${b.date}T${b.time}`)))
-              .slice(0, 3)
-              .map((e, i) => (
-                <li key={i}>{`${e.category} ${e.title} — ${e.date} ${e.time}`}</li>
-              ))}
+            {getUpcomingEvents().map((e, i) => (
+              <li key={i}>{`${e.category} ${e.title} — ${e.date} ${e.time}`}</li>
+            ))}
+            {getUpcomingEvents().length === 0 && <li>No upcoming events</li>}
           </ul>
         </div>
 
@@ -220,9 +217,32 @@ function App() {
             <h2>My Events</h2>
             {events.map((e, i) => (
               <div key={i} className="event-item">
-                <b>{`${e.category} ${e.title}`}</b> — {`${e.date} ${e.time}`}
-                <button onClick={() => showInlineEdit(i)}>Edit</button>
-                <button onClick={() => deleteEvent(i)}>Delete</button>
+                {editIndex === i ? (
+                  <>
+                    <input value={title} onChange={(e) => setTitle(e.target.value)} required />
+                    <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+                    <input type="time" value={time} onChange={(e) => setTime(e.target.value)} required />
+                    <select value={category} onChange={(e) => setCategory(e.target.value)}>
+                      <option>🎉 Personal</option>
+                      <option>💼 Work</option>
+                      <option>💪 Health</option>
+                    </select>
+                    <button onClick={addOrUpdateEvent}>Save</button>
+                    <button onClick={() => setEditIndex(null)}>Cancel</button>
+                  </>
+                ) : (
+                  <>
+                    <b>{`${e.category} ${e.title}`}</b> — {`${e.date} ${e.time}`}
+                    <button onClick={() => {
+                      setTitle(e.title);
+                      setDate(e.date);
+                      setTime(e.time);
+                      setCategory(e.category);
+                      setEditIndex(i);
+                    }}>Edit</button>
+                    <button onClick={() => deleteEvent(i)}>Delete</button>
+                  </>
+                )}
               </div>
             ))}
           </div>
